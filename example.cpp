@@ -76,11 +76,14 @@ void example() {
     durations.push_back(timer.Stop());
 
     Sample maximum_in_range = *maximumInRange;
-    std::cout << sample << "\tMax=" << maximum_in_range << "\n   Wedge: ";
+    std::cout << sample << "\n   Wedge: ";
     for (auto& i : wedge) {
-      std::cout << i << '\t';
+      std::cout << i << ' ';
     }
-    std::cout << "\n\n";
+    std::cout << "\n";
+    if (removed) {
+      std::cout << "   REMOVED " << removed << '\n';
+    }
 
     out_file << sample.time << ';' << sample.value << ';' << maximumInRange->value << '\n';
   }
