@@ -60,30 +60,6 @@ class mono_wedge {
   TCollection wedge_;
 
   /*
-  mono_wedge_search(begin, end, value, comp)
-
-  Search routine used to determine deletion range in mono_wedge_update.
-
-  Similar to std::lower_bound, returns first element in range for which
-          comp(value, element) returns false.
-
-          Range must be sorted with regard to comp.
-          Iterator must be a random access iterator.
-          Complexity is below log2(N) with respect to wedge size.
-          Facilitates amortized constant complexity in mono_wedge_update.
-*/
-  template <class TValueCompare>
-  iterator search(const T& value, TValueCompare comp) {
-    if (wedge_.size() == 0ul) {
-      return wedge_.end();
-    }
-
-    auto map_comp = [&comp](const typename TCollection::value_type& val1,
-                            const typename TCollection::value_type& val2) { return comp(val1.second, val2.second); };
-    return std::lower_bound(wedge_.begin(), wedge_.end(), std::make_pair(TTime(), value), map_comp);
-  }
-
-  /*
           mono_wedge_update(wedge, value, comp)
 
           Update a monotonic wedge with a new value.
@@ -104,24 +80,17 @@ class mono_wedge {
   */
   template <class Compare>
   void update(const TTime& time, const T& value, Compare comp) {
-    auto i = search(value, comp);
-    wedge_.erase(i, wedge_.end());
-    wedge_.emplace(time, value);
-  }
-
-  /*
-  min_wedge_search(wedge, value)
-  min_wedge_search(wedge, value)
-
-  Convenience variants of mono_wedge_search for min and max wedges.
-          These will use std::greater/less, which default to operator >/<.
-*/
-  iterator min_wedge_search(iterator begin, iterator end, const T& value) {
-    return mono_wedge_search(begin, end, value, std::less<T>());
-  }
-
-  iterator max_wedge_search(iterator begin, iterator end, const T& value) {
-    return mono_wedge_search(begin, end, value, std::greater<T>());
+    auto new_sample = std::make_pair(time, value);
+    // erase all pairs at end whose value is less or equal to value
+    if (!wedge_.empty()) {
+      auto map_comp = [&comp](const typename TCollection::value_type& val1,
+                              const typename TCollection::value_type& val2) { return comp(val1.second, val2.second); };
+      
+      // get iterator to first element (from left to right) that is greater or equal to value
+      auto i = std::lower_bound(wedge_.begin(), wedge_.end(), new_sample, map_comp);
+      wedge_.erase(i, wedge_.end());
+    }
+    wedge_.insert(new_sample);
   }
 
   /*
