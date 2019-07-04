@@ -38,7 +38,7 @@ namespace mono_wedge {
 template <class TTime, class T>
 class mono_wedge {
  public:
-  typedef typename std::map<TTime, T> TCollection;
+  typedef std::map<TTime, T> TCollection;
   typedef typename TCollection::iterator iterator;
 
   /*
@@ -104,13 +104,13 @@ class mono_wedge {
     wedge_.push_back(std::forward(value));
   }
 
-  template <class Wedge, class T, class Compare>
-  void min_update(Wedge& wedge, T&& value) {
+  template <class Compare>
+  void min_update(TCollection& wedge, T&& value) {
     update(wedge, std::forward(value), std::less<T>());
   }
 
-  template <class Wedge, class T, class Compare>
-  void max_update(Wedge& wedge, T&& value) {
+  template <class Compare>
+  void max_update(TCollection& wedge, T&& value) {
     update(wedge, std::forward(value), std::greater<T>());
   }
 };
