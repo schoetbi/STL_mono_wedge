@@ -72,15 +72,15 @@ class mono_wedge {
           Complexity is below log2(N) with respect to wedge size.
           Facilitates amortized constant complexity in mono_wedge_update.
 */
-  template <class Compare>
-  iterator search(iterator begin, iterator end, const T& value, Compare comp) {
-    const size_t size = std::distance(begin, end);
-    if (size <= 0ul) return end;
+  template <class TValueCompare>
+  iterator search(const T& value, TValueCompare comp) {
+    if (wedge_.size() == 0ul) {
+      return wedge_.end();
+    }
 
-    // Afterwards run a binary search (use std::lower_bound)
     auto map_comp = [&comp](const typename TCollection::value_type& val1,
                             const typename TCollection::value_type& val2) { return comp(val1.second, val2.second); };
-    return std::lower_bound(begin, end, std::make_pair(TTime(), value), map_comp);
+    return std::lower_bound(wedge_.begin(), wedge_.end(), std::make_pair(TTime(), value), map_comp);
   }
 
   /*
@@ -104,7 +104,7 @@ class mono_wedge {
   */
   template <class Compare>
   void update(const TTime& time, const T& value, Compare comp) {
-    auto i = search(wedge_.begin(), wedge_.end(), value, comp);
+    auto i = search(value, comp);
     wedge_.erase(i, wedge_.end());
     wedge_.emplace(time, value);
   }
