@@ -57,16 +57,16 @@ void example() {
   std::ofstream out_file("output.csv");
   out_file.imbue(std::locale(std::cout.getloc(), new punct_facet<char, ','>));
   const int rangeSize = 20;
-  mono_wedge::mono_wedge<Sample> wedge;
+  mono_wedge::mono_wedge<int, Sample> wedge;
   std::vector<std::chrono::nanoseconds> durations;
 
   for (auto& sample : samples) {
     TimeGauge timer;
     // Add the new sample to our wedge
-    wedge.max_update(sample);
+    wedge.max_update(sample.time, sample);
 
     int removed{};
-    while (wedge.begin()->time <= sample.time - rangeSize) {
+    while (wedge.begin()->first <= sample.time - rangeSize) {
       wedge.pop_front();
       removed++;
     }
@@ -75,17 +75,17 @@ void example() {
     auto maximumInRange = wedge.begin();
     durations.push_back(timer.Stop());
 
-    Sample maximum_in_range = *maximumInRange;
+    auto maximum_in_range = *maximumInRange;
     std::cout << sample << "\n   Wedge: ";
     for (auto& i : wedge) {
-      std::cout << i << ' ';
+      std::cout << i.second << ' ';
     }
     std::cout << "\n";
     if (removed) {
       std::cout << "   REMOVED " << removed << '\n';
     }
 
-    out_file << sample.time << ';' << sample.value << ';' << maximumInRange->value << '\n';
+    out_file << sample.time << ';' << sample.value << ';' << maximumInRange->second.value << '\n';
   }
 
   const auto total_time = std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds::zero());

@@ -3,7 +3,7 @@
 
 #include <algorithm>
 #include <functional>
-#include <deque>
+#include <map>
 
 /*
         This header presents algorithms for fast running minimum and maximum using
@@ -35,10 +35,11 @@
 */
 
 namespace mono_wedge {
-template <class T>
+template <class TTime, class T>
 class mono_wedge {
  public:
-  typedef typename std::deque<T>::iterator iterator;
+  typedef typename std::map<TTime, T> TCollection;
+  typedef typename TCollection::iterator iterator;
 
   /*
           min_wedge_update(wedge, value)
@@ -47,16 +48,16 @@ class mono_wedge {
           Convenience variants of mono_wedge_update for min and max wedges.
                   These will use std::greater/less, which default to operator >/<.
   */
-  void min_update(const T& value) { return update(value, std::less<T>()); }
+  void min_update(const TTime& time, const T& value) { return update(time, value, std::less<T>()); }
 
-  void max_update(const T& value) { return update(value, std::greater<T>()); }
+  void max_update(const TTime& time, const T& value) { return update(time, value, std::greater<T>()); }
   iterator begin() { return wedge_.begin(); }
   iterator end() { return wedge_.end(); }
 
   void pop_front() { wedge_.erase(wedge_.begin()); };
 
  private:
-  std::deque<T> wedge_;
+  TCollection wedge_;
 
   /*
   mono_wedge_search(begin, end, value, comp)
@@ -71,21 +72,15 @@ class mono_wedge {
           Complexity is below log2(N) with respect to wedge size.
           Facilitates amortized constant complexity in mono_wedge_update.
 */
-  template <class Iterator, class T, class Compare>
-  Iterator search(Iterator begin, Iterator end, const T& value, Compare comp) {
-    size_t size = std::distance(begin, end);
+  template <class Compare>
+  iterator search(iterator begin, iterator end, const T& value, Compare comp) {
+    const size_t size = std::distance(begin, end);
     if (size <= 0ul) return end;
 
-    // Linear search through at most J elements, where J = log2(N-J).
-    Iterator search_pos = end;
-    --search_pos;
-    size_t i = 1ul;
-    for (; ((size - i) >> i) > 0ul; ++i, --search_pos) {
-      if (comp(*search_pos, value)) return ++search_pos;
-    }
-
     // Afterwards run a binary search (use std::lower_bound)
-    return std::lower_bound<Iterator, T, Compare>(begin, ++search_pos, value, comp);
+    auto map_comp = [&comp](const typename TCollection::value_type& val1,
+                            const typename TCollection::value_type& val2) { return comp(val1.second, val2.second); };
+    return std::lower_bound(begin, end, std::make_pair(TTime(), value), map_comp);
   }
 
   /*
@@ -108,10 +103,10 @@ class mono_wedge {
           A "greater" comparator yields a max-wedge_.
   */
   template <class Compare>
-  void update(const T& value, Compare comp) {
+  void update(const TTime& time, const T& value, Compare comp) {
     auto i = search(wedge_.begin(), wedge_.end(), value, comp);
     wedge_.erase(i, wedge_.end());
-    wedge_.push_back(value);
+    wedge_.emplace(time, value);
   }
 
   /*
@@ -121,13 +116,11 @@ class mono_wedge {
   Convenience variants of mono_wedge_search for min and max wedges.
           These will use std::greater/less, which default to operator >/<.
 */
-  template <class Iterator, class T>
-  Iterator min_wedge_search(Iterator begin, Iterator end, const T& value) {
+  iterator min_wedge_search(iterator begin, iterator end, const T& value) {
     return mono_wedge_search(begin, end, value, std::less<T>());
   }
 
-  template <class Iterator, class T>
-  Iterator max_wedge_search(Iterator begin, Iterator end, const T& value) {
+  iterator max_wedge_search(iterator begin, iterator end, const T& value) {
     return mono_wedge_search(begin, end, value, std::greater<T>());
   }
 
